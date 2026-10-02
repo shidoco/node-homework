@@ -7,7 +7,7 @@ const path = require('path');
 const sampleDir = path.join(__dirname, 'sample-files');
 const sampleFile = path.join(sampleDir, 'sample.txt');
 
-fs.mkdirSync(sampleDir, { recursive: true});
+fs.mkdirSync(sampleDir, { recursive: true });
 fs.writeFileSync(sampleFile, 'Hello, async world!', 'utf8');
 
 // 1. Callback style
@@ -24,18 +24,18 @@ fs.readFile(sampleFile, 'utf8', (error, data) => {
   // Callback hell example (test and leave it in comments):
 
   //fs.readFile('first.txt', 'utf8', (error, firstText) => {
-  //if (error) return console.error(error);
-
-  //fs.readFile('second.txt', 'utf8', (error, secondText) => {
     //if (error) return console.error(error);
 
-    //fs.readFile('third.txt', 'utf8', (error, thirdText) => {
+    //fs.readFile('second.txt', 'utf8', (error, secondText) => {
       //if (error) return console.error(error);
 
-      //console.log(firstText, secondText, thirdText);
+      //fs.readFile('third.txt', 'utf8', (error, thirdText) => {
+        //if (error) return console.error(error);
+
+        //console.log(firstText, secondText, thirdText);
+      //});
     //});
   //});
-//});
 
   // 2. Promise style
 
