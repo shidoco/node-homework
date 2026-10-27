@@ -1,17 +1,52 @@
-function register(req, res) {
-    const { name, email, password } = req.body;
-    const user = { name, email, password };
-    global.users.push(user);
-    global.user_id = user;
+const crypto = require("crypto");
+const util = require("util");
+const scrypt = util.promisify(crypto.scrypt);
+const { userSchema } = require("../validation/userSchema");
 
-    return res.status(201).json({name: user.name, email: user.email });
+async function hashPassword(password) {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const derivedKey = await scrypt(password, salt, 64);
+    return `${salt}:${derivedKey.toString("hex")}`;
 }
 
-function logon(req, res) {
-    const { email, password } = req.body;
-    const user = global.users.find((candidate) => candidate.email === email && candidate.password === password);
+async function comparePassword(inputPassword, storedHash) {
+    const [salt, storedKey] = storedHash.split(":");
+    const keyBuffer = Buffer.from(storedKey, "hex");
+    const derivedKey = await scrypt(inputPassword, salt, 64);
+
+    return crypto.timingSafeEqual(derivedKey, keyBuffer);
+}
+
+async function register(req, res) {
+    if (!req.body) req.body = {};
+
+    const { error, value } = userSchema.validate(req.body, { abortEarly: false });
+
+    if (error) {
+        return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { name, email, password } = value;
+    const hashedPassword = await hashPassword(password);
+    const newUser = { email, name, hashedPassword };
+
+    global.users.push(newUser);
+    global.user_id = newUser;
+
+    return res.status(201).json({ name: newUser.name, email: newUser.email });
+}
+
+async function logon(req, res) {
+    const { email, password } = req.body || {};
+    const user = global.users.find((candidate) => candidate.email === email);
 
     if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const goodCredentials = await comparePassword(password, user.hashedPassword);
+
+    if (!goodCredentials) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
 
@@ -28,5 +63,7 @@ function logoff(req, res) {
 module.exports = {
     register,
     logon,
-    logoff
+    logoff,
+    hashPassword,
+    comparePassword,
 };
