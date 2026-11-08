@@ -38,7 +38,7 @@
     "jest": "^30.0.4",
     "node-mocks-http": "^1.17.2",
     "nodemon": "^3.1.14",
-    "pg": "^8.16.3",
+    "pg": "^8.23.1",
     "pg-cursor": "^2.13.1",
     "prettier": "^3.7.4",
     "supertest": "^7.1.3",
@@ -50,7 +50,7 @@
     "@prisma/engines@6.12.0": true,
     "prisma@6.12.0": true,
     "unrs-resolver@1.12.2": true,
-    "fsevents@1.2.13": true,
-    "nodemon@1.19.4": true
+    "nodemon@1.19.4": true,
+    "fsevents@2.3.3": true
   }
 }
