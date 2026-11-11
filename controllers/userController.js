@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
 const { userSchema } = require("../validation/userSchema");
-const pool = require("../db/pg-pool");
+const prisma = require("../db/prisma");
 
 async function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString("hex");
@@ -30,39 +30,38 @@ async function register(req, res, next) {
     const { name, email, password } = value;
     const hashedPassword = await hashPassword(password);
 
-    try {
-        const result = await pool.query(
-            `INSERT INTO users (email, name, hashed_password)
-             VALUES ($1, $2, $3)
-             RETURNING id, email, name`,
-            [email, name, hashedPassword],
-        );
+    let user = null;
 
-        const user = result.rows[0];
+    try {
+        user = await prisma.user.create({
+            data: { name, email, hashedPassword },
+            select: { name: true, email: true, id: true },
+        });
         global.user_id = user.id;
 
         return res.status(201).json({ name: user.name, email: user.email });
-    } catch (error) {
-        if (error.code === "23505") {
+    } catch (err) {
+        if (
+            err.name === "PrismaClientKnownRequestError" &&
+            err.code === "P2002"
+        ) {
             return res.status(400).json({ message: "Email already registered" });
         }
 
-        return next(error);
+        return next(err);
     }
 }
 
 async function logon(req, res) {
-    const { email, password } = req.body || {};
-    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-        email,
-    ]);
-    const user = result.rows[0];
+    let { email, password } = req.body || {};
+    email = email.toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const goodCredentials = await comparePassword(password, user.hashed_password);
+    const goodCredentials = await comparePassword(password, user.hashedPassword);
 
     if (!goodCredentials) {
         return res.status(401).json({ message: "Invalid email or password" });
