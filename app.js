@@ -9,6 +9,7 @@ global.tasks = [];
 const timeRouter = require("./routes/timeRoutes");
 const userRouter = require("./routes/userRoutes");
 const taskRouter = require("./routes/taskRoutes");
+const analyticsRouter = require("./routes/analyticsRoutes");
 const notFound = require("./middleware/not-found");
 const errorHandler = require("./middleware/error-handler");
 const authMiddleware = require("./middleware/auth");
@@ -20,6 +21,8 @@ app.use("/api", timeRouter);
 app.use("/api/users", userRouter);
 
 app.use("/api/tasks", authMiddleware, taskRouter);
+
+app.use("/api/analytics", authMiddleware, analyticsRouter);
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");

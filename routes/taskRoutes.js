@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(auth);
 
+router.post("/bulk", taskController.bulkCreate);
 router.get("/", taskController.index);
 router.get("/:id", taskController.show);
 router.post("/", taskController.create);
