@@ -1,8 +1,7 @@
-const authMiddleware = require("../middleware/auth")
-
 const express = require("express");
 
 const userController = require("../controllers/userController");
+const jwtMiddleware = require("../middleware/jwtMiddleware");
 
 const router = express.Router();
 
@@ -10,8 +9,8 @@ router.post("/register", userController.register);
 
 router.post("/logon", userController.logon);
 
-router.post("/logoff", userController.logoff);
+router.post("/logoff", jwtMiddleware, userController.logoff);
 
-router.get("/:id", authMiddleware, userController.show);
+router.get("/:id", jwtMiddleware, userController.show);
 
 module.exports = router;

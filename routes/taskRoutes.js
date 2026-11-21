@@ -1,10 +1,6 @@
 const express = require("express");
 const taskController = require("../controllers/taskController");
-const auth = require("../middleware/auth");
-
 const router = express.Router();
-
-router.use(auth);
 
 router.post("/bulk", taskController.bulkCreate);
 router.get("/", taskController.index);

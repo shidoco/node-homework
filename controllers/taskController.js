@@ -28,7 +28,7 @@ async function create(req, res) {
       title: value.title,
       isCompleted: value.isCompleted,
       priority: value.priority,
-      userId: global.user_id,
+      userId: req.user.id,
     },
     select: { id: true, title: true, isCompleted: true, priority: true },
   });
@@ -59,7 +59,7 @@ async function bulkCreate(req, res, next) {
       title: value.title,
       isCompleted: value.isCompleted,
       priority: value.priority,
-      userId: global.user_id,
+      userId: req.user.id,
     });
   }
 
@@ -80,7 +80,7 @@ async function bulkCreate(req, res, next) {
 }
 
 async function index(req, res) {
-  const whereClause = { userId: global.user_id };
+  const whereClause = { userId: req.user.id };
 
   if (req.query.find) {
     whereClause.title = {
@@ -98,10 +98,16 @@ async function index(req, res) {
   
   const tasks = await prisma.task.findMany({
     where: whereClause,
-     include: {
+    select: {
+      id: true,
+      title: true,
+      isCompleted: true,
+      priority: true,
+      createdAt: true,
       User: {
-      select: {name: true, email: true}
-    }},
+        select: { name: true, email: true }
+      }
+    },
     skip: skip,
     take: limit,
     orderBy: getOrderBy(req.query)});
@@ -132,7 +138,7 @@ async function show(req, res) {
   const task = await prisma.task.findUnique({
     where: {
       id: taskId,
-      userId: global.user_id,
+      userId: req.user.id,
     },
     select: {
       id: true,
@@ -170,7 +176,7 @@ async function update(req, res, next) {
     const task = await prisma.task.update({
       where: {
         id: parseInt(req.params.id),
-        userId: global.user_id,
+        userId: req.user.id,
       },
       data: value,
       select: { title: true, isCompleted: true, id: true, priority: true },
@@ -194,7 +200,7 @@ async function deleteTask(req, res, next) {
 
   try {
     const task = await prisma.task.delete({
-      where: { id: taskId, userId: global.user_id },
+      where: { id: taskId, userId: req.user.id },
       select: { id: true, title: true, isCompleted: true },
     });
 
