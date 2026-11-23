@@ -1,8 +1,25 @@
 const crypto = require("crypto");
+const { randomUUID } = crypto;
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
 const { userSchema } = require("../validation/userSchema");
 const prisma = require("../db/prisma");
+const jwt = require("jsonwebtoken");
+
+const cookieFlags = (req) => {
+    return {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    };
+};
+
+const setJwtCookie = (req, res, user) => {
+    const payload = { id: user.id, csrfToken: randomUUID() };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.cookie("jwt", token, { ...cookieFlags(req), maxAge: 3600000 });
+    return payload.csrfToken;
+};
 
 async function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString("hex");
@@ -61,12 +78,14 @@ async function register(req, res, next) {
             return { user: newUser, welcomeTasks };
         });
 
-        global.user_id = result.user.id;
+        const csrfToken = setJwtCookie(req, res, result.user);
+        delete result.user.id;
 
         return res.status(201).json({
             user: result.user,
             welcomeTasks: result.welcomeTasks,
             transactionStatus: "success",
+            csrfToken,
         });
     } catch (err) {
         if (err.code === "P2002") {
@@ -79,6 +98,9 @@ async function register(req, res, next) {
 
 async function logon(req, res) {
     let { email, password } = req.body || {};
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+    }
     email = email.toLowerCase();
     const user = await prisma.user.findUnique({ where: { email }, select: {
         id: true, name: true, email: true, hashedPassword: true
@@ -94,13 +116,13 @@ async function logon(req, res) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    global.user_id = user.id;
+    const csrfToken = setJwtCookie(req, res, user);
 
-    return res.status(200).json({ name: user.name, email: user.email });
+    return res.status(200).json({ name: user.name, email: user.email, csrfToken });
 }
 
 function logoff(req, res) {
-    global.user_id = null;
+    res.clearCookie("jwt", cookieFlags(req));
     return res.sendStatus(200);
 }
 
@@ -112,7 +134,7 @@ async function show(req, res) {
         return res.status(400).json({ error: "Invalid user ID" });
     }
 
-    if (userId !== global.user_id) {
+    if (userId !== req.user?.id) {
         return res.status(403).json({ error: "Forbidden" });
     }
 
@@ -142,7 +164,7 @@ async function show(req, res) {
     }
 
     res.status(200).json(user);
-    };
+};
 
 module.exports = {
     register,
